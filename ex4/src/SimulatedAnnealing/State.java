@@ -1,10 +1,10 @@
 package SimulatedAnnealing;
 
-// A general State class for a Simulated Annealing process
-public abstract class State implements Comparable<State> {
+import java.util.ArrayList;
 
-	public double evaluate() {
-		return 1.0; // TODO
-	}
-	
+// A general State class for a Simulated Annealing process
+public abstract class State implements Comparable<State>, Cloneable {
+
+	public abstract double evaluate();
+	public abstract ArrayList<State> generateNeighbors();
 }
