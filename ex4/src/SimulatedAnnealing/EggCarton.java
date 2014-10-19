@@ -61,11 +61,11 @@ public class EggCarton extends State implements Cloneable {
 	
 	@Override
 	public double evaluate() {
+		// If we can't fit more without violating the constraints, there's no point in continuing
+		if (numberOfEggs == maxEggs) return 1.0; 
+		
 		// The more of the capacity (max no. eggs satisfying the constraints) we use, the better
 		double usedCapacity = numberOfEggs/maxEggs;
-		
-		// If we can't fit more without violating the constraints, there's no point in continuing
-		if (usedCapacity == 1) return usedCapacity;
 		
 		// We want to penalize solutions that clump all the eggs together
 		double maxPenalty = k*m*n;
