@@ -2,6 +2,7 @@ package SimulatedAnnealing;
 
 import java.util.ArrayList;
 
+// A concrete implementation of the State to solve the Egg Carton Puzzle
 public class EggCarton extends State implements Cloneable {
 
 	private boolean[][] carton;	// The carton to hold the eggs
@@ -19,19 +20,15 @@ public class EggCarton extends State implements Cloneable {
 			this.n = m;
 			this.m = n;
 		}
+		// Start with an empty carton
 		carton = new boolean[this.m][this.n];
+		this.numberOfEggs = 0;
+		
 		this.k = k;
 		maxEggs = this.n * k;
-		this.numberOfEggs = 0;
 	}
 	
-	@Override
-	public int compareTo(State arg0) {
-		if (this.evaluate() > arg0.evaluate()) return 1;
-		else if (this.evaluate() < arg0.evaluate()) return -1;
-		return 0;
-	}
-	
+	// Copy every trait of the carton
 	public EggCarton clone() {
 		EggCarton clone = new EggCarton(m, n, k);
 		boolean[][] box = new boolean[m][n];
@@ -42,16 +39,14 @@ public class EggCarton extends State implements Cloneable {
 				box[i][j] = carton[i][j];
 			}
 		}
-		clone.setCarton(box);
+		clone.carton = box;
 		return clone;
 	}
-	
-	private void setCarton(boolean[][] carton) {
-		this.carton = carton;
-	}
 
+	// Visualize the carton
 	public String toString() {
-		String output = "";
+		String output = "m=" + m + ", n=" + n + ", k=" + k + "\n";
+		output += "Placed " + numberOfEggs + " eggs.\n";
 		
 		for (int i = 0; i < m; i++) {
 			for (int j = 0; j < n; j++) {
@@ -66,7 +61,13 @@ public class EggCarton extends State implements Cloneable {
 	
 	@Override
 	public double evaluate() {
+		// The more of the capacity (max no. eggs satisfying the constraints) we use, the better
 		double usedCapacity = numberOfEggs/maxEggs;
+		
+		// If we can't fit more without violating the constraints, there's no point in continuing
+		if (usedCapacity == 1) return usedCapacity;
+		
+		// We want to penalize solutions that clump all the eggs together
 		double maxPenalty = k*m*n;
 		double penalty = 0;
 		
@@ -88,7 +89,8 @@ public class EggCarton extends State implements Cloneable {
 			penalty += Math.pow((k - eggsInCol), 2);
 		}
 		
-		double scaledPenalty = Math.pow(penalty/maxPenalty, 0.2);
+		// Scale the penalty to the max penalty
+		double scaledPenalty = penalty/maxPenalty;
 		
 		return usedCapacity/scaledPenalty;
 	}
@@ -96,8 +98,8 @@ public class EggCarton extends State implements Cloneable {
 	public ArrayList<State> generateNeighbors() {
 		ArrayList<State> neighbors = new ArrayList<State>();
 		
-		
-		
+		// Toggle all the eggs in the carton to create all neighbors
+		// Neighbors are those cartons that differ from the input by one slot
 		for (int i = 0; i < m; i++) {
 			for (int j = 0; j < n; j++) {
 				EggCarton newCarton = this.clone();
@@ -110,11 +112,12 @@ public class EggCarton extends State implements Cloneable {
 	}
 	
 	public void toggleEgg(int x, int y) {
-		if (carton[x][y]) numberOfEggs--;
-		else numberOfEggs++;
-		carton[x][y] = !carton[x][y];
+		if (carton[x][y]) numberOfEggs--;	// If there's an egg here, we'll remove it
+		else numberOfEggs++;				// If not, we'll add one
+		carton[x][y] = !carton[x][y];		// Take out/place egg
 	}
 	
+	// Check if the configuration meets the constraints (no more than k eggs per row/col/diagonal
 	public boolean isValid() {
 		// Count rows
 		for (int i = 0; i < m; i++) {
