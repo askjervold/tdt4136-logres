@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Scanner;
 
+import javax.security.auth.login.FailedLoginException;
+
 public class Assignment5 {
 	public static interface ValuePairFilter {
 		public boolean filter(String x, String y);
@@ -21,9 +23,51 @@ public class Assignment5 {
 
 	@SuppressWarnings("serial")
 	public static class VariablesToDomainsMapping extends HashMap<String, ArrayList<String>> {
+		
+		// If all variables have a domain of size 1, the assignment is complete
+		public boolean isComplete() {
+			for (String var : this.keySet()) {
+				if (this.get(var).size() != 1) return false;
+			}
+			return true;
+		}
 	}
 
+	public static void main(String args[]) {
+		
+		// Easy board
+		CSP easy = Assignment5.createSudokuCSP("easy.txt");
+		VariablesToDomainsMapping assignment1 = easy.backtrackingSearch();
+		System.out.println("Easy board (" + easy.backtrackCount + " backtracks, " + easy.failureCount + " failures):");
+		Assignment5.printSudokuSolution(assignment1);
+		System.out.println();
+		/*
+		// Medium board
+		CSP medium = Assignment5.createSudokuCSP("medium.txt");
+		VariablesToDomainsMapping assignment2 = medium.backtrackingSearch();
+		System.out.println("Medium board (" + medium.backtrackCount + " backtracks, " + medium.failureCount + " failures):");
+		Assignment5.printSudokuSolution(assignment2);
+		System.out.println();
+		
+		// Hard board
+		CSP hard = Assignment5.createSudokuCSP("hard.txt");
+		VariablesToDomainsMapping assignment3 = hard.backtrackingSearch();
+		System.out.println("Hard board (" + hard.backtrackCount + " backtracks, " + hard.failureCount + " failures):");
+		Assignment5.printSudokuSolution(assignment3);
+		System.out.println();
+		
+		// Very hard board
+		CSP veryhard = Assignment5.createSudokuCSP("veryhard.txt");
+		VariablesToDomainsMapping assignment4 = veryhard.backtrackingSearch();
+		System.out.println("Very hard board (" + veryhard.backtrackCount + " backtracks, " + veryhard.failureCount + " failures):");
+		Assignment5.printSudokuSolution(assignment4);
+		*/
+	}
+	
 	public static class CSP {
+		public int backtrackCount = 0;
+		public int failureCount = 0;
+		
 		@SuppressWarnings("unchecked")
 		private VariablesToDomainsMapping deepCopyAssignment(VariablesToDomainsMapping assignment) {
 			VariablesToDomainsMapping copy = new VariablesToDomainsMapping();
@@ -194,10 +238,29 @@ public class Assignment5 {
 		 * that took place in previous iterations of the loop.
 		 */
 		public VariablesToDomainsMapping backtrack(VariablesToDomainsMapping assignment) {
-			// TODO: IMPLEMENT THIS
-			return assignment;
+			if (assignment.isComplete()) return assignment; // Might not need this, since I return assignment at the end
+			
+			String var = selectUnassignedVariable(assignment);
+			ArrayList<String> domain = assignment.get(var);
+			
+			for (String val : domain) {
+				VariablesToDomainsMapping copy = deepCopyAssignment(assignment);
+				//System.out.println("Value " + val + " in domain");
+				copy.get(var).clear();
+				copy.get(var).add(val);
+				
+					if(inference(copy, getAllNeighboringArcs(var))) {
+						VariablesToDomainsMapping result = backtrack(copy);
+						backtrackCount++;
+						
+						if (result != null) return result;
+					}
+			}
+			
+			failureCount++;
+			return null;
 		}
-
+		
 		/**
 		 * The function 'Select-Unassigned-Variable' from the pseudocode in the
 		 * textbook. Should return the name of one of the variables in
@@ -205,7 +268,11 @@ public class Assignment5 {
 		 * values has a length greater than one.
 		 */
 		public String selectUnassignedVariable(VariablesToDomainsMapping assignment) {
-			// TODO: IMPLEMENT THIS
+			for (String var : assignment.keySet()) {
+				// Return the first unassigned variable
+				if (assignment.get(var).size() > 1) return var;
+			}
+			// Return an empty string if there are no unassigned variables
 			return "";
 		}
 
@@ -216,8 +283,25 @@ public class Assignment5 {
 		 * arcs that should be visited.
 		 */
 		public boolean inference(VariablesToDomainsMapping assignment, ArrayList<Pair<String>> queue) {
-			// TODO: IMPLEMENT THIS
-			return false;
+			while (queue.size() > 0) {
+				// Pop the first element of the queue
+				Pair<String> arc = queue.remove(0);
+				
+				// If we revise the domain of arc.x ...
+				if (revise(assignment, arc.x, arc.y)) {
+					// ... and its size is now 0 ...
+					if (assignment.get(arc.x).size() == 0) return false; // ... there is an inconsistency
+					
+					// If no inconsistency is found, let's look at the neighboring arcs
+					ArrayList<Pair<String>> neighbors = getAllNeighboringArcs(arc.x);
+					for (Pair<String> n : neighbors) {
+						if (!n.x.equals(arc.y)) queue.add(new Pair<String>(n.x, arc.y));
+					}
+				}
+			}
+			
+			// No inconsistency found
+			return true;
 		}
 
 		/**
@@ -230,8 +314,45 @@ public class Assignment5 {
 		 * 'assignment'.
 		 */
 		public boolean revise(VariablesToDomainsMapping assignment, String i, String j) {
-			// TODO: IMPLEMENT THIS
-			return false;
+			boolean revised = false;
+			System.out.println("Assignment: " + assignment);
+			System.out.println("i: " + i + ", j: " + j);
+			ArrayList<String> valuesToRemove = new ArrayList<String>();
+			ArrayList<Pair<String>> arcConstraints = constraints.get(i).get(j);
+			System.out.println("Constraints: " + arcConstraints);
+			
+			// If there are no constraints on this arc, there is no need to revise
+			if (arcConstraints == null) return false;
+
+			// For each, value x in DOMAIN[i] ...
+			for (String x : assignment.get(i)) {
+				boolean validX = false;
+
+				// ... check if there is a value y in DOMAIN[j] that together with x forms a valid pair
+				for (String y : assignment.get(j)) {
+					for (Pair<String> pair : arcConstraints) {
+						if (pair.x.equals(x) && pair.y.equals(y)) {
+							validX = true;
+							break; // Found a valid pair (x,y)
+						}
+					}
+				}
+
+				if (!validX) {
+					valuesToRemove.add(x);
+				}
+			}
+			
+			if (valuesToRemove.size() > 0) {
+				for (String val : valuesToRemove) {
+					assignment.get(i).remove(val);
+				}
+				revised = true;
+				System.out.println("Removed values from " + i + ": " + valuesToRemove);
+				System.out.println("Values remaining in " + i + ": " + assignment.get(i));
+			}
+			
+			return revised;
 		}
 	}
 
