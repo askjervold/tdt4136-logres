@@ -23,14 +23,6 @@ public class Assignment5 {
 
 	@SuppressWarnings("serial")
 	public static class VariablesToDomainsMapping extends HashMap<String, ArrayList<String>> {
-		
-		// If all variables have a domain of size 1, the assignment is complete
-		public boolean isComplete() {
-			for (String var : this.keySet()) {
-				if (this.get(var).size() != 1) return false;
-			}
-			return true;
-		}
 	}
 
 	public static void main(String args[]) {
@@ -237,25 +229,43 @@ public class Assignment5 {
 		 * that took place in previous iterations of the loop.
 		 */
 		public VariablesToDomainsMapping backtrack(VariablesToDomainsMapping assignment) {
-			if (assignment.isComplete()) return assignment;
-			
 			String var = selectUnassignedVariable(assignment);
 			
+			// This is where we return the solution when all variables are assigned
+			if (var.equals("complete")) return assignment;
+			
+			// If assignment is not complete, get the domain of var
 			ArrayList<String> domain = assignment.get(var);
 			
+			// Try every value in the domain of var
 			for (String val : domain) {
+				/**	Create a working copy of the board.
+				 *	This is to make it easy to start over from the last consistent
+				 *	point should we make a mistake.
+				 */ 
 				VariablesToDomainsMapping copy = deepCopyAssignment(assignment);
+				
+				// Enter the value in the spot by removing all other values from its domain
 				copy.get(var).clear();
 				copy.get(var).add(val);
 				
-					if(inference(copy, getAllNeighboringArcs(var))) {
-						VariablesToDomainsMapping result = backtrack(copy);
-						backtrackCount++;
-						
-						if (result != null) return result;
-					}
+				// If the assignment is valid (consistent) ...
+				if(inference(copy, getAllNeighboringArcs(var))) {
+					// ... move on to another unassigned variable with updated assignment
+					VariablesToDomainsMapping result = backtrack(copy);
+					backtrackCount++;
+
+					/** If we reach this point and the result is not null (failure),
+					 * 	we have reached a solution and the recursive calls will return
+					 *  all the way up the call chain.
+					 */
+					if (result != null) return result;
+				}
 			}
 			
+			/**	If we go through every value in the domain without finding a consistent
+			 * 	solution, we have made a wrong choice previously
+			 */
 			failureCount++;
 			return null;
 		}
@@ -271,8 +281,8 @@ public class Assignment5 {
 				// Return the first unassigned variable
 				if (assignment.get(var).size() > 1) return var;
 			}
-			// Return an empty string if there are no unassigned variables
-			return "";
+			// Return "complete" if there are no unassigned variables (assignment is complete)
+			return "complete";
 		}
 
 		/**
@@ -291,7 +301,7 @@ public class Assignment5 {
 					// ... and its size is now 0 ...
 					if (assignment.get(arc.x).size() == 0) return false; // ... there is an inconsistency
 					
-					// If no inconsistency is found, let's look at the neighboring arcs
+					// If no inconsistency is found, we should update the neighboring arcs too
 					ArrayList<Pair<String>> neighbors = getAllNeighboringArcs(arc.x);
 					for (Pair<String> n : neighbors) {
 						if (!n.x.equals(arc.y)) queue.add(new Pair<String>(n.x, arc.y));
@@ -334,6 +344,7 @@ public class Assignment5 {
 					}
 				}
 
+				// If this x doesn't satisfy the constraints, we should remove it
 				if (!validX) {
 					valuesToRemove.add(x);
 				}
