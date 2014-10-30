@@ -41,7 +41,7 @@ public class Assignment5 {
 		System.out.println("Easy board (" + easy.backtrackCount + " backtracks, " + easy.failureCount + " failures):");
 		Assignment5.printSudokuSolution(assignment1);
 		System.out.println();
-		/*
+		
 		// Medium board
 		CSP medium = Assignment5.createSudokuCSP("medium.txt");
 		VariablesToDomainsMapping assignment2 = medium.backtrackingSearch();
@@ -61,7 +61,6 @@ public class Assignment5 {
 		VariablesToDomainsMapping assignment4 = veryhard.backtrackingSearch();
 		System.out.println("Very hard board (" + veryhard.backtrackCount + " backtracks, " + veryhard.failureCount + " failures):");
 		Assignment5.printSudokuSolution(assignment4);
-		*/
 	}
 	
 	public static class CSP {
@@ -238,14 +237,14 @@ public class Assignment5 {
 		 * that took place in previous iterations of the loop.
 		 */
 		public VariablesToDomainsMapping backtrack(VariablesToDomainsMapping assignment) {
-			if (assignment.isComplete()) return assignment; // Might not need this, since I return assignment at the end
+			if (assignment.isComplete()) return assignment;
 			
 			String var = selectUnassignedVariable(assignment);
+			
 			ArrayList<String> domain = assignment.get(var);
 			
 			for (String val : domain) {
 				VariablesToDomainsMapping copy = deepCopyAssignment(assignment);
-				//System.out.println("Value " + val + " in domain");
 				copy.get(var).clear();
 				copy.get(var).add(val);
 				
@@ -315,11 +314,8 @@ public class Assignment5 {
 		 */
 		public boolean revise(VariablesToDomainsMapping assignment, String i, String j) {
 			boolean revised = false;
-			System.out.println("Assignment: " + assignment);
-			System.out.println("i: " + i + ", j: " + j);
 			ArrayList<String> valuesToRemove = new ArrayList<String>();
 			ArrayList<Pair<String>> arcConstraints = constraints.get(i).get(j);
-			System.out.println("Constraints: " + arcConstraints);
 			
 			// If there are no constraints on this arc, there is no need to revise
 			if (arcConstraints == null) return false;
@@ -348,8 +344,6 @@ public class Assignment5 {
 					assignment.get(i).remove(val);
 				}
 				revised = true;
-				System.out.println("Removed values from " + i + ": " + valuesToRemove);
-				System.out.println("Values remaining in " + i + ": " + assignment.get(i));
 			}
 			
 			return revised;
